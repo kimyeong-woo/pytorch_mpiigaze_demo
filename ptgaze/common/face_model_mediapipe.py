@@ -24,7 +24,8 @@ class FaceModelMediaPipe(FaceModel):
     The model coordinate system is defined as the camera coordinate
     system rotated 180 degrees around the Y axis.
     """
-    LANDMARKS: np.ndarray = np.array([
+    LANDMARKS: np.ndarray = dataclasses.field(
+        default_factory=lambda: np.array([
         [0.0, 0.02279539, 0.01496097],
         [0.0, 0.0, 0.0],
         [0.0, 0.00962159, 0.01417337],
@@ -495,11 +496,16 @@ class FaceModelMediaPipe(FaceModel):
         [0.0453, -0.04036865, 0.04135919],
     ],
                                      dtype=np.float64)
+    )
 
-    REYE_INDICES: np.ndarray = np.array([33, 133])
-    LEYE_INDICES: np.ndarray = np.array([362, 263])
-    MOUTH_INDICES: np.ndarray = np.array([78, 308])
-    NOSE_INDICES: np.ndarray = np.array([240, 460])
+    REYE_INDICES: np.ndarray = dataclasses.field(
+        default_factory=lambda: np.array([33, 133]))
+    LEYE_INDICES: np.ndarray = dataclasses.field(
+        default_factory=lambda: np.array([362, 263]))
+    MOUTH_INDICES: np.ndarray = dataclasses.field(
+        default_factory=lambda: np.array([78, 308]))
+    NOSE_INDICES: np.ndarray = dataclasses.field(
+        default_factory=lambda: np.array([240, 460]))
 
     CHIN_INDEX: int = 199
     NOSE_INDEX: int = 1

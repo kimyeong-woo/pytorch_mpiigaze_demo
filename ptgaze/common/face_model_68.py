@@ -24,7 +24,8 @@ class FaceModel68(FaceModel):
     The model coordinate system is defined as the camera coordinate
     system rotated 180 degrees around the Y axis.
     """
-    LANDMARKS: np.ndarray = np.array([
+    LANDMARKS: np.ndarray = dataclasses.field(
+        default_factory=lambda: np.array([
         [-0.07141807, -0.02827123, 0.08114384],
         [-0.07067417, -0.00961522, 0.08035654],
         [-0.06844646, 0.00895837, 0.08046731],
@@ -95,11 +96,16 @@ class FaceModel68(FaceModel):
         [-0.00771924, 0.03711846, 0.01940396],
     ],
                                      dtype=np.float64)
+    )
 
-    REYE_INDICES: np.ndarray = np.array([36, 39])
-    LEYE_INDICES: np.ndarray = np.array([42, 45])
-    MOUTH_INDICES: np.ndarray = np.array([48, 54])
-    NOSE_INDICES: np.ndarray = np.array([31, 35])
+    REYE_INDICES: np.ndarray = dataclasses.field(
+        default_factory=lambda: np.array([36, 39]))
+    LEYE_INDICES: np.ndarray = dataclasses.field(
+        default_factory=lambda: np.array([42, 45]))
+    MOUTH_INDICES: np.ndarray = dataclasses.field(
+        default_factory=lambda: np.array([48, 54]))
+    NOSE_INDICES: np.ndarray = dataclasses.field(
+        default_factory=lambda: np.array([31, 35]))
 
     CHIN_INDEX: int = 8
     NOSE_INDEX: int = 30
