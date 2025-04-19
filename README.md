@@ -1,3 +1,31 @@
+# ptgaze 설치 및 사용법
+
+## 1. 아나콘다 환경 생성
+아나콘다 설치 후,
+Anaconda Prompt 실행  *시작 프로그렘 검색*
+~~PATH 에 conda 설정될경우 일반 cmd에서 해도됨~~
+
+### 1-1. 새로운 가상환경 생성 (Python 3.10 권장)
+`conda create -n ptgaze_env python=3.10 -y`
+
+### 1-2. 가상환경 활성화
+`conda activate ptgaze_env`
+
+## 2. 저장소 클론 & 라이브러리 설치
+
+### 2-1. GitHub 저장소 클론 *numpy type문제 해결된 소스임!!*
+`git clone https://github.com/sjsanjsrh/pytorch_mpiigaze/`
+`cd pytorch_mpiigaze_demo`
+
+### 2-2. 필요한 패키지 설치
+`pip install -r requirements.txt`  # 의존성 패키지 설치
+`python ./setup.py install`  # ptgaze 설치 *현제 소스에서 설치하여야함!!*
+
+## 3. 웹캠으로 실시간 시선 추적 실행
+`python ./run.py`
+
+
+
 # A demo program of gaze estimation models (MPIIGaze, MPIIFaceGaze, ETH-XGaze)
 
 [![PyPI version](https://badge.fury.io/py/ptgaze.svg)](https://pypi.org/project/ptgaze/)
