@@ -21,8 +21,8 @@ Anaconda Prompt 실행  *시작 프로그렘 검색*
 `pip install -r requirements.txt`  # 의존성 패키지 설치
 `python ./setup.py install`  # ptgaze 설치 *현제 소스에서 설치하여야함!!*
 
-## 3. 웹캠으로 실시간 시선 추적 실행
-`python ./run.py`
+## 3. 실시간 시선 추적 실행
+`python ./run.py` # 해당 파일 안에서 실행인수 설정 가능
 
 
 
