@@ -2,6 +2,8 @@ import datetime
 import logging
 import pathlib
 from typing import Optional
+import pyautogui
+import time
 
 import cv2
 import numpy as np
@@ -10,6 +12,7 @@ from omegaconf import DictConfig
 from .common import Face, FacePartsName, Visualizer
 from .gaze_estimator import GazeEstimator
 from .utils import get_3d_face_model
+from .point.calibration import Calibration
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -35,6 +38,9 @@ class Demo:
         self.show_landmarks = self.config.demo.show_landmarks
         self.show_normalized_image = self.config.demo.show_normalized_image
         self.show_template_model = self.config.demo.show_template_model
+        self.show_calibration = False
+
+        self.calibration = None
 
     def run(self) -> None:
         if self.config.demo.use_camera or self.config.demo.video_path:
@@ -93,6 +99,8 @@ class Demo:
             self._draw_face_template_model(face)
             self._draw_gaze_vector(face)
             self._display_normalized_image(face)
+            self._display_calibration(face)
+
 
         if self.config.demo.use_camera:
             self.visualizer.image = self.visualizer.image[:, ::-1]
@@ -165,6 +173,9 @@ class Demo:
             self.show_normalized_image = not self.show_normalized_image
         elif key == ord('t'):
             self.show_template_model = not self.show_template_model
+        elif key == ord('c'):
+            self.show_calibration = not self.show_calibration
+            pass
         else:
             return False
         return True
@@ -234,3 +245,89 @@ class Demo:
             logger.info(f'[face] pitch: {pitch:.2f}, yaw: {yaw:.2f}')
         else:
             raise ValueError
+
+    def _display_calibration(self, face: Face) -> None:
+        if not self.show_calibration:
+            return
+
+        if self.calibration is None:
+            self.calibration = Calibration(
+                pyautogui.size().width,
+                pyautogui.size().height
+            )
+            self.calibration_start_time = time.time()
+            self.current_calibration_index = -1
+            self.collected_points = {"a": [], "b": [], "c": [], "d": []}
+
+        # 캘리브레이션 점들 정의
+        calibration_points = [
+            self.calibration.point_a,
+            self.calibration.point_b,
+            self.calibration.point_c,
+            self.calibration.point_d
+        ]
+
+        # 
+        if self.current_calibration_index >= len(calibration_points):
+            # 중앙점 계산
+            self.calibration.put_points(
+                np.array(self.collected_points["a"]),
+                np.array(self.collected_points["b"]),
+                np.array(self.collected_points["c"]),
+                np.array(self.collected_points["d"])
+            )
+
+            # 계산된 중앙점 표시
+            img = np.zeros((self.calibration.screen_height, self.calibration.screen_width, 3), dtype=np.uint8)
+            self.calibration.draw_calcd_point(img, face)
+            cv2.namedWindow("calibration", cv2.WND_PROP_FULLSCREEN)
+            cv2.setWindowProperty("calibration",cv2.WND_PROP_FULLSCREEN,cv2.WINDOW_FULLSCREEN)
+            cv2.imshow('calibration', img)
+
+        elif self.current_calibration_index == -1:
+            # n초 대기 후 첫 번째 점으로 이동
+            n = 3
+            dt = time.time() - self.calibration_start_time
+            img = np.zeros((self.calibration.screen_height, self.calibration.screen_width, 3), dtype=np.uint8)
+            cv2.putText(img, "Wait "+str(int(n - dt + .5))+"sec", (int(self.calibration.screen_width / 2) - 50, int(self.calibration.screen_height / 2)), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+            cv2.namedWindow("calibration", cv2.WND_PROP_FULLSCREEN)
+            cv2.setWindowProperty("calibration",cv2.WND_PROP_FULLSCREEN,cv2.WINDOW_FULLSCREEN)
+            cv2.imshow('calibration', img)
+
+            if dt >= n:
+                self.current_calibration_index = 0
+                self.calibration_start_time = time.time()
+
+        else:
+            # 현재 점 표시
+            current_point = calibration_points[self.current_calibration_index]
+            img = np.zeros((self.calibration.screen_height, self.calibration.screen_width, 3), dtype=np.uint8)
+            
+            # 0.5초 후에 점을 그리도록 설정
+            if time.time() - self.calibration_start_time >= 0.5:
+                cv2.circle(img, (int(current_point.x), int(current_point.y)), 10, (0, 255, 0), -1)
+                cv2.putText(img, f"Point {self.current_calibration_index + 1}", (int(current_point.x), int(current_point.y) - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+            
+            
+            cv2.namedWindow("calibration", cv2.WND_PROP_FULLSCREEN)
+            cv2.setWindowProperty("calibration",cv2.WND_PROP_FULLSCREEN,cv2.WINDOW_FULLSCREEN)
+            cv2.imshow('calibration', img)
+
+            if time.time() - self.calibration_start_time >= 1.0:
+                # 현재 얼굴의 중앙점 추가
+                eye_center = self.calibration.calc_center(face)
+                if self.current_calibration_index == 0:
+                    self.collected_points["a"].append(eye_center)
+                elif self.current_calibration_index == 1:
+                    self.collected_points["b"].append(eye_center)
+                elif self.current_calibration_index == 2:
+                    self.collected_points["c"].append(eye_center)
+                elif self.current_calibration_index == 3:
+                    self.collected_points["d"].append(eye_center)
+            
+            # 3초가 지나면 다음 점으로 이동
+            if time.time() - self.calibration_start_time >= 3:
+
+                # 다음 점으로 이동
+                self.current_calibration_index += 1
+                self.calibration_start_time = time.time()
