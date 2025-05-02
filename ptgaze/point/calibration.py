@@ -2,39 +2,6 @@ import cv2
 import numpy as np
 from scipy.spatial.distance import cdist
 import numpy as np
-
-class Calibration:
-    # ... 기존 코드 ...
-
-    def put_points(self, list_points):
-        """
-        튀어있는 점(outliers)을 제거하고 중앙점을 계산합니다.
-        """
-        # numpy 배열로 변환
-        points = np.array([[p.x, p.y] for p in list_points])
-
-        # 중앙점 계산 (초기값)
-        center = np.mean(points, axis=0)
-
-        # 거리 계산 (중앙점과 각 점 사이의 거리)
-        distances = cdist(points, [center])
-
-        # 거리의 IQR(사분위 범위) 계산
-        q1, q3 = np.percentile(distances, [25, 75])
-        iqr = q3 - q1
-        threshold = q3 + 1.5 * iqr  # 이상치 기준
-
-        # 이상치가 아닌 점들만 필터링
-        inliers = points[distances.flatten() <= threshold]
-
-        # 필터링된 점들로 새로운 중앙점 계산
-        refined_center = np.mean(inliers, axis=0)
-
-        # 중앙점을 Point 객체로 저장
-        self.center_point.x = int(refined_center[0])
-        self.center_point.y = int(refined_center[1])
-
-        print(f"Filtered center point: {self.center_point}")
 from ..common import Face, FacePartsName
 import math
 
@@ -55,9 +22,9 @@ class Calibration:
         self.center_vactor = Point()
 
         self.point_a = Point(screen_width/10,screen_height/10)
-        self.point_b = Point(screen_width/10,screen_height*9/10)
-        self.point_c = Point(screen_width*9/10,screen_height/10)
-        self.point_d = Point(screen_width*9/10,screen_height*9/10)
+        self.point_b = Point(screen_width*9/10,screen_height/10)
+        self.point_c = Point(screen_width*9/10,screen_height*9/10)
+        self.point_d = Point(screen_width/10,screen_height*9/10)
 
         self.scale = Point(0.0, 0.0)
         self.point = Point(0.0, 0.0)
@@ -116,30 +83,31 @@ class Calibration:
 
         return res
     
-    def put_points(self, a_points, b_points, c_points, d_points):
-        """
-        튀어있는 점(outliers)을 제거하고 중앙점을 계산합니다.
-        """
+    def calc_filtered_centers(self, points):
+        res = []
+        for i in points:
+            res.append(self.calculate_filtered_center(i))
+        return res
 
-        # 중앙점 계산
-        p_a = self.calculate_filtered_center(a_points)
-        p_b = self.calculate_filtered_center(b_points)
-        p_c = self.calculate_filtered_center(c_points)
-        p_d = self.calculate_filtered_center(d_points)
-        
-        # 화면과의 상대 비율 및 위치 계산
-        self.scale.x  = (self.point_c.x - self.point_a.x) / float(p_c.x - p_a.x) / 2
-        self.scale.x += (self.point_d.x - self.point_b.x) / float(p_d.x - p_b.x) / 2
-        self.scale.y  = (self.point_b.y - self.point_a.y) / float(p_b.y - p_a.y) / 2
-        self.scale.y += (self.point_d.y - self.point_c.y) / float(p_d.y - p_c.y) / 2
-        self.point.x  = int(self.point_a.x - p_a.x * self.scale.x) / 4
-        self.point.x += int(self.point_b.x - p_b.x * self.scale.x) / 4
-        self.point.x += int(self.point_c.x - p_c.x * self.scale.x) / 4
-        self.point.x += int(self.point_d.x - p_d.x * self.scale.x) / 4
-        self.point.y  = int(self.point_a.y - p_a.y * self.scale.y) / 4
-        self.point.y += int(self.point_b.y - p_b.y * self.scale.y) / 4
-        self.point.y += int(self.point_c.y - p_c.y * self.scale.y) / 4
-        self.point.y += int(self.point_b.y - p_b.y * self.scale.y) / 4
+    def calc_trs_matrix(self, origins, dests):
+        """
+        원본 점과 변환된 점을 기반으로 변환 행렬을 계산합니다.
+        """
+        # numpy 배열로 변환
+        origins = np.array([[p.x, p.y] for p in origins], dtype=np.float32)
+        dests = np.array([[p.x, p.y] for p in dests], dtype=np.float32)
+
+        # 변환 행렬 계산
+        matrix = cv2.getPerspectiveTransform(dests, origins)
+        return matrix
+    
+    def calc_trs_transform(self, matrix, point):
+        """
+        변환 행렬을 사용하여 점을 변환합니다.
+        """
+        # numpy 배열로 변환
+        transformed_point = cv2.perspectiveTransform(np.array([[[point.x, point.y]]], dtype=np.float32), matrix)[0][0]
+        return Point(int(transformed_point[0]), int(transformed_point[1]))
 
     def calc_point(self, point):
         """
