@@ -33,7 +33,7 @@ if __name__ == '__main__':
     # sys.argv.append('./pytorch_mpiigaze_demo/data/videos/face.mp4')
 
     # sys.argv.append('--camera')
-    # sys.argv.append('./pytorch_mpiigaze_demo/data/calib/sample_params.yaml')
+    # sys.argv.append('./pytorch_mpiigaze_demo/data/calib/camera_params.yaml')
 
     # sys.argv.append('--output-dir')
     # sys.argv.append('./pytorch_mpiigaze_demo/data/output')
