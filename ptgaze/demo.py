@@ -287,7 +287,7 @@ class Demo:
             
             centerd_point = self.calibration.calc_center(face)
             point = self.calibration.calc_trs_transform(trs, centerd_point)
-            cv2.circle(self.fullscimg, (int(point.x), int(point.y)), 5, (0, 255, 0), -1)
+            cv2.circle(self.fullscimg, (int(point[0]), int(point[1])), 5, (0, 255, 0), -1)
             
             cv2.putText(self.fullscimg, str(trs), (0,int(self.calibration.screen_height)-4), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
             cv2.namedWindow("calibration", cv2.WND_PROP_FULLSCREEN)
@@ -315,14 +315,14 @@ class Demo:
             
             # 0.5초 후에 점을 그리도록 설정
             if time.time() - self.calibration_start_time >= 0.5:
-                cv2.circle(img, (int(current_point.x), int(current_point.y)), 20, (0, 255, 0), -1)
+                cv2.circle(img, (int(current_point[0]), int(current_point[1])), 20, (0, 255, 0), -1)
                 cv2.putText(img, f"{self.current_calibration_index }", 
-                            (int(current_point.x)-10, int(current_point.y+10)), 
+                            (int(current_point[0]) - 10, int(current_point[1] + 10)), 
                             cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 2)
             
             
             cv2.namedWindow("calibration", cv2.WND_PROP_FULLSCREEN)
-            cv2.setWindowProperty("calibration",cv2.WND_PROP_FULLSCREEN,cv2.WINDOW_FULLSCREEN)
+            cv2.setWindowProperty("calibration", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
             cv2.imshow('calibration', img)
 
             if time.time() - self.calibration_start_time >= 1.0:
