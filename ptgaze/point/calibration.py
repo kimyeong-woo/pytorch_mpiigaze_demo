@@ -2,14 +2,17 @@ import cv2
 import numpy as np
 from scipy.spatial.distance import cdist
 from ..common import Face, FacePartsName
+from ..gaze_estimator import GazeEstimator
 import math
 
 class Calibration:
-    def __init__(self, screen_width, screen_height):
+    def __init__(self, gaze_estimator: GazeEstimator, screen_width, screen_height):
+        self.gaze_estimator = gaze_estimator 
+
         self.screen_width = screen_width
         self.screen_height = screen_height
 
-        self.center_point = np.array([0, 0])
+        self.eye_vector = np.array([0, 0])
 
         self.point_a = np.array([screen_width / 10, screen_height / 10])
         self.point_b = np.array([screen_width * 9 / 10, screen_height / 10])
@@ -19,30 +22,36 @@ class Calibration:
         self.scale = np.array([0.0, 0.0])
         self.point = np.array([0.0, 0.0])
 
-    def calc_center(self, face: Face) -> np.ndarray:
+    def calc_eye_2d_vector(self, face: Face) -> np.ndarray:
         """
-        얼굴의 중앙점을 계산합니다.
+        눈의 각도를 계산합니다.
         """
-        eye_center_x, eye_center_y = 0, 0
+        eye_angles = np.zeros((2, 3), dtype=np.float32)
+        eye_positions = np.zeros((2, 3), dtype=np.float32)
+        eye_composition = np.zeros((2, 3), dtype=np.float32)
 
-        for key in [FacePartsName.REYE, FacePartsName.LEYE]:
+        for i, key in enumerate([FacePartsName.REYE, FacePartsName.LEYE]):
             eye = getattr(face, key.name.lower())
-            eye_x, eye_y = eye.gaze_vector[0], eye.gaze_vector[1]
-            eye_center_x, eye_center_y = eye_center_x + eye_x, eye_center_y + eye_y
-        eye_center_x, eye_center_y = eye_center_x / 2, eye_center_y / 2
+            eye_angles[i] = eye.normalized_gaze_vector
+            eye_angles[i][0] = -eye_angles[i][0]
+            eye_positions[i] = eye.center / eye.distance
+            eye_positions[i] = self.gaze_estimator.camera.convert_to_camera_direction(eye_positions[i])
+            eye_composition[i] = eye_angles[i] - eye_positions[i]
 
-        self.center_point = np.array([
-            int(-eye_center_x * self.screen_width + self.screen_width / 2),
-            int(eye_center_y * self.screen_height + self.screen_height / 2)
-        ])
-        return self.center_point
+        cross_product = np.cross(eye_composition[0], eye_composition[1])
+        res = cross_product[:2]/-cross_product[2]
+
+        res = np.sum(eye_composition, axis=0)
+        res = res[:2] / -res[2]
+
+        return res
 
     def calculate_filtered_center(self, points):
         """
         튀어있는 점(outliers)을 제거하고 중앙점을 계산합니다.
         """
         # numpy 배열로 변환
-        points = np.array(points)
+        points = np.array(points, dtype=np.float32)
 
         # 중앙점 계산 (초기값)
         center = np.mean(points, axis=0)
@@ -61,7 +70,7 @@ class Calibration:
         # 필터링된 점들로 새로운 중앙점 계산
         refined_center = np.mean(inliers, axis=0)
 
-        return np.array([int(refined_center[0]), int(refined_center[1])])
+        return np.array([refined_center[0], refined_center[1]])
 
     def calc_filtered_centers(self, points):
         return [self.calculate_filtered_center(p) for p in points]
@@ -99,5 +108,5 @@ class Calibration:
         화면에 점을 그립니다.
         """
         self.calc_center(face)
-        point = self.calc_point(self.center_point)
+        point = self.calc_point(self.eye_vector)
         cv2.circle(image, (point[0], point[1]), 5, (0, 255, 0), -1)

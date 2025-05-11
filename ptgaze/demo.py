@@ -253,12 +253,13 @@ class Demo:
 
         if self.calibration is None:
             self.calibration = Calibration(
+                self.gaze_estimator,
                 pyautogui.size().width,
                 pyautogui.size().height
             )
             self.calibration_start_time = time.time()
             self.current_calibration_index = -1
-            self.collected_points = {"a": [], "b": [], "c": [], "d": []}
+            self.collected_points = [[],[],[],[]]
             self.fullscimg = np.zeros((self.calibration.screen_height, self.calibration.screen_width, 3), dtype=np.uint8)
 
         # 캘리브레이션 점들 정의
@@ -268,24 +269,31 @@ class Demo:
             self.calibration.point_c,
             self.calibration.point_d
         ]
-
+        
+        # if True: # for debugging
+        #     img = np.zeros((self.calibration.screen_height, self.calibration.screen_width, 3), dtype=np.uint8)
+        #     cx = int(self.calibration.screen_width / 2)
+        #     cy = int(self.calibration.screen_height / 2)
+        #     eye_vector = self.calibration.calc_eye_2d_vector(face) * 1000
+        #     cv2.line(img, (cx, cy), (cx+int(eye_vector[0]), cy+int(eye_vector[1])), (255, 0, 0), 2)
+        #     cv2.circle(img, (cx+int(eye_vector[0]), cy+int(eye_vector[1])), 5, (0, 255, 0), -1)
+        #     cv2.namedWindow("calibration", cv2.WND_PROP_FULLSCREEN)
+        #     cv2.setWindowProperty("calibration",cv2.WND_PROP_FULLSCREEN,cv2.WINDOW_FULLSCREEN)
+        #     cv2.imshow('calibration', img)
+        #     return
         
         if self.current_calibration_index >= len(calibration_points):
-            points = ([
-                np.array(self.collected_points["a"]),
-                np.array(self.collected_points["b"]),
-                np.array(self.collected_points["c"]),
-                np.array(self.collected_points["d"])
-            ])
-            points = self.calibration.calc_filtered_centers(points)
+            points = []
+            for e in self.collected_points:
+                points.append(self.calibration.calculate_filtered_center(e))
             trs = self.calibration.calc_trs_matrix(calibration_points, points)
 
-            # 계산된 중앙점 표시
+            # 계산된 점 표시
             # 점점 연하게 하기 위해서 self.fullscimg에서 빼기
             fade_factor = 0.02
             self.fullscimg = cv2.addWeighted(self.fullscimg, 1 - fade_factor, np.zeros_like(self.fullscimg), fade_factor, 0)
             
-            centerd_point = self.calibration.calc_center(face)
+            centerd_point = self.calibration.calc_eye_2d_vector(face)
             point = self.calibration.calc_trs_transform(trs, centerd_point)
             cv2.circle(self.fullscimg, (int(point[0]), int(point[1])), 5, (0, 255, 0), -1)
             
@@ -327,15 +335,8 @@ class Demo:
 
             if time.time() - self.calibration_start_time >= 1.0:
                 # 현재 얼굴의 중앙점 추가
-                eye_center = self.calibration.calc_center(face)
-                if self.current_calibration_index == 0:
-                    self.collected_points["a"].append(eye_center)
-                elif self.current_calibration_index == 1:
-                    self.collected_points["b"].append(eye_center)
-                elif self.current_calibration_index == 2:
-                    self.collected_points["c"].append(eye_center)
-                elif self.current_calibration_index == 3:
-                    self.collected_points["d"].append(eye_center)
+                eye_vector = self.calibration.calc_eye_2d_vector(face)
+                self.collected_points[self.current_calibration_index].append(eye_vector)
             
             # 3초가 지나면 다음 점으로 이동
             if time.time() - self.calibration_start_time >= 3:
