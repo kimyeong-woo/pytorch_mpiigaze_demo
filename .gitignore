@@ -106,3 +106,7 @@ ENV/
 
 # vscode
 .vscode/
+
+# camera calibration files
+/calib_images
+ptgaze/data/calib/camera_params.yaml
