@@ -263,11 +263,13 @@ class Demo:
             self.fullscimg = np.zeros((self.calibration.screen_height, self.calibration.screen_width, 3), dtype=np.uint8)
 
         # 캘리브레이션 점들 정의
+        screen_width = self.calibration.screen_width
+        screen_height = self.calibration.screen_height
         calibration_points = [
-            self.calibration.point_a,
-            self.calibration.point_b,
-            self.calibration.point_c,
-            self.calibration.point_d
+            np.array((screen_width / 10, screen_height / 10), dtype=np.float32),
+            np.array((screen_width * 9 / 10, screen_height / 10), dtype=np.float32),
+            np.array((screen_width * 9 / 10, screen_height * 9 / 10), dtype=np.float32),
+            np.array((screen_width / 10, screen_height * 9 / 10), dtype=np.float32)
         ]
         
         # if True: # for debugging
@@ -285,7 +287,7 @@ class Demo:
         if self.current_calibration_index >= len(calibration_points):
             points = []
             for e in self.collected_points:
-                points.append(self.calibration.calculate_filtered_center(e))
+                points.append(self.calibration.calc_filtered_centers(e))
             trs = self.calibration.calc_trs_matrix(calibration_points, points)
 
             # 계산된 점 표시

@@ -14,14 +14,6 @@ class Calibration:
 
         self.eye_vector = np.array([0, 0])
 
-        self.point_a = np.array([screen_width / 10, screen_height / 10])
-        self.point_b = np.array([screen_width * 9 / 10, screen_height / 10])
-        self.point_c = np.array([screen_width * 9 / 10, screen_height * 9 / 10])
-        self.point_d = np.array([screen_width / 10, screen_height * 9 / 10])
-
-        self.scale = np.array([0.0, 0.0])
-        self.point = np.array([0.0, 0.0])
-
     def calc_eye_2d_vector(self, face: Face) -> np.ndarray:
         """
         눈의 각도를 계산합니다.
@@ -42,9 +34,11 @@ class Calibration:
         res = np.sum(eye_composition, axis=0)
         res = res[:2] / -res[2]
 
+        self.eye_vector = res
+
         return res
 
-    def calculate_filtered_center(self, points):
+    def calc_filtered_centers(self, points):
         """
         튀어있는 점(outliers)을 제거하고 중앙점을 계산합니다.
         """
@@ -70,8 +64,6 @@ class Calibration:
 
         return np.array([refined_center[0], refined_center[1]])
 
-    def calc_filtered_centers(self, points):
-        return [self.calculate_filtered_center(p) for p in points]
 
     def calc_trs_matrix(self, origins, dests):
         """
