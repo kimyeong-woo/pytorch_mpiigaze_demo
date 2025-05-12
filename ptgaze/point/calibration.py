@@ -34,8 +34,6 @@ class Calibration:
             eye = getattr(face, key.name.lower())
             eye_angles[i] = eye.normalized_gaze_vector
             eye_angles[i][0] = -eye_angles[i][0]
-            eye_positions[i] = eye.center / eye.distance
-            eye_positions[i] = self.gaze_estimator.camera.convert_to_camera_direction(eye_positions[i])
             eye_composition[i] = eye_angles[i] - eye_positions[i]
 
         cross_product = np.cross(eye_composition[0], eye_composition[1])
