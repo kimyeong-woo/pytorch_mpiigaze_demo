@@ -288,7 +288,7 @@ class Demo:
             points = []
             for e in self.collected_points:
                 points.append(self.calibration.calc_filtered_centers(e))
-            trs = self.calibration.calc_trs_matrix(calibration_points, points)
+            self.calibration.calc_trs_matrix(calibration_points, points)
             self.calibration.calc_noize(points, self.collected_points)
 
             # 계산된 점 표시
@@ -297,16 +297,16 @@ class Demo:
             self.fullscimg = cv2.addWeighted(self.fullscimg, 1 - fade_factor, np.zeros_like(self.fullscimg), fade_factor, 0)
             
             centerd_point = self.calibration.calc_eye_2d_vector(face)
-            point = self.calibration.calc_trs_transform(trs, centerd_point)
+            point = self.calibration.calc_trs_transform(centerd_point)
 
             k_point = self.calibration.calc_filtered_point(centerd_point)
-            k_point = self.calibration.calc_trs_transform(trs, k_point)
+            k_point = self.calibration.calc_trs_transform(k_point)
 
             cv2.circle(self.fullscimg, (int(k_point[0]), int(k_point[1])), 10, (255, 0, 0), -1)
             cv2.circle(self.fullscimg, (int(point[0]), int(point[1])), 5, (0, 255, 0), -1)
             
             cv2.putText(self.fullscimg, "Noize: "+str(self.calibration.filter.R), (0, int(self.calibration.screen_height) - 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
-            cv2.putText(self.fullscimg, str(trs), (0,int(self.calibration.screen_height)-4), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+            cv2.putText(self.fullscimg, str(self.calibration.trs_matrix), (0,int(self.calibration.screen_height)-4), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
             cv2.namedWindow("calibration", cv2.WND_PROP_FULLSCREEN)
             cv2.setWindowProperty("calibration",cv2.WND_PROP_FULLSCREEN,cv2.WINDOW_FULLSCREEN)
             cv2.imshow('calibration', self.fullscimg)

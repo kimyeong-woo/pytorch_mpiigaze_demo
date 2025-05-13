@@ -17,6 +17,8 @@ class Calibration:
         self.filter = KalmanFilter2D(process_noise=1e-7)
         self.last_time = 0
 
+        self.trs_matrix = None
+
         self.eye_vector = np.array([0, 0])
 
     def calc_eye_2d_vector(self, face: Face) -> np.ndarray:
@@ -89,15 +91,15 @@ class Calibration:
         dests = np.array(dests, dtype=np.float32)
 
         # 변환 행렬 계산
-        matrix = cv2.getPerspectiveTransform(dests, origins)
-        return matrix
+        self.trs_matrix  = cv2.getPerspectiveTransform(dests, origins)
+        return self.trs_matrix 
 
-    def calc_trs_transform(self, matrix, point) -> np.ndarray:
+    def calc_trs_transform(self, point) -> np.ndarray:
         """
         변환 행렬을 사용하여 점을 변환합니다.
         """
         # numpy 배열로 변환
-        transformed_point = cv2.perspectiveTransform(np.array([[point]], dtype=np.float32), matrix)[0][0]
+        transformed_point = cv2.perspectiveTransform(np.array([[point]], dtype=np.float32), self.trs_matrix )[0][0]
         return np.array([int(transformed_point[0]), int(transformed_point[1])])
 
     def calc_filtered_point(self, point) -> np.ndarray:
