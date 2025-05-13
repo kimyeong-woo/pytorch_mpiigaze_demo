@@ -330,11 +330,14 @@ class Demo:
             current_point = calibration_points[self.current_calibration_index]
             img = np.zeros((self.calibration.screen_height, self.calibration.screen_width, 3), dtype=np.uint8)
             
-            # 0.5초 후에 점을 그리도록 설정
+            # 점을 그리기
             if time.time() - self.calibration_start_time >= 0.5:
+                cv2.circle(img, (int(current_point[0]), int(current_point[1])), 20, (0, 255, 255), -1)
+            if time.time() - self.calibration_start_time >= 1.5:
                 cv2.circle(img, (int(current_point[0]), int(current_point[1])), 20, (0, 255, 0), -1)
-                cv2.putText(img, f"{self.current_calibration_index }", 
-                            (int(current_point[0]) - 10, int(current_point[1] + 10)), 
+            for i in range(len(calibration_points)):
+                cv2.putText(img, f"{i+1}", 
+                            (int(calibration_points[i][0]) - 10, int(calibration_points[i][1] + 10)), 
                             cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 2)
             
             
@@ -342,13 +345,13 @@ class Demo:
             cv2.setWindowProperty("calibration", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
             cv2.imshow('calibration', img)
 
-            if time.time() - self.calibration_start_time >= 1.0:
+            if time.time() - self.calibration_start_time >= 2:
                 # 현재 얼굴의 중앙점 추가
                 eye_vector = self.calibration.calc_eye_2d_vector(face)
                 self.collected_points[self.current_calibration_index].append(eye_vector)
             
-            # 3초가 지나면 다음 점으로 이동
-            if time.time() - self.calibration_start_time >= 3:
+            # 다음 점으로 이동
+            if time.time() - self.calibration_start_time >= 4:
 
                 # 다음 점으로 이동
                 self.current_calibration_index += 1
