@@ -14,7 +14,7 @@ class Calibration:
         self.screen_width = screen_width
         self.screen_height = screen_height
 
-        self.filter = KalmanFilter2D(process_noise=1e-7)
+        self.filter = KalmanFilter2D(process_noise=1e-9)
         self.last_time = 0
 
         self.trs_matrix = None
@@ -106,9 +106,6 @@ class Calibration:
         if self.last_time == 0:
             self.last_time = time.time()
         dt = time.time() - self.last_time
-
-        if dt <= 0:
-            dt = 0.001
         
         return self.filter.correct(point, dt = dt)[0]
         

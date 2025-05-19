@@ -34,9 +34,18 @@ class KalmanFilter2D:
         # 항등 행렬
         self.I = np.eye(4)
 
-    def predict(self):
+    def predict(self, dt):
         # 상태 예측
         self.x = self.A @ self.x
+        
+        # dt에 따라 상태 전이 행렬 A 업데이트
+        self.A = np.array([
+            [1, 0, dt, 0],
+            [0, 1, 0, dt],
+            [0, 0, 1,  0],
+            [0, 0, 0,  1]
+        ])
+
         # 공분산 예측
         self.P = self.A @ self.P @ self.A.T + self.Q
         return self.x[:2]
@@ -65,7 +74,7 @@ class KalmanFilter2D:
         예측 + 보정 한 번에 수행
         """
         self.dt = dt
-        self.predict()
+        self.predict(dt)
         return self.update(z)
 
     def calc_noize(self, points):
