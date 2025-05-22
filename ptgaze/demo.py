@@ -263,11 +263,13 @@ class Demo:
             self.fullscimg = np.zeros((self.calibration.screen_height, self.calibration.screen_width, 3), dtype=np.uint8)
 
         # 캘리브레이션 점들 정의
+        screen_width = self.calibration.screen_width
+        screen_height = self.calibration.screen_height
         calibration_points = [
-            self.calibration.point_a,
-            self.calibration.point_b,
-            self.calibration.point_c,
-            self.calibration.point_d
+            np.array((screen_width / 10, screen_height / 10), dtype=np.float32),
+            np.array((screen_width * 9 / 10, screen_height / 10), dtype=np.float32),
+            np.array((screen_width * 9 / 10, screen_height * 9 / 10), dtype=np.float32),
+            np.array((screen_width / 10, screen_height * 9 / 10), dtype=np.float32)
         ]
         
         # if True: # for debugging
@@ -285,8 +287,9 @@ class Demo:
         if self.current_calibration_index >= len(calibration_points):
             points = []
             for e in self.collected_points:
-                points.append(self.calibration.calculate_filtered_center(e))
-            trs = self.calibration.calc_trs_matrix(calibration_points, points)
+                points.append(self.calibration.calc_filtered_centers(e))
+            self.calibration.calc_trs_matrix(calibration_points, points)
+            self.calibration.calc_noize(points, self.collected_points)
 
             # 계산된 점 표시
             # 점점 연하게 하기 위해서 self.fullscimg에서 빼기
@@ -294,10 +297,16 @@ class Demo:
             self.fullscimg = cv2.addWeighted(self.fullscimg, 1 - fade_factor, np.zeros_like(self.fullscimg), fade_factor, 0)
             
             centerd_point = self.calibration.calc_eye_2d_vector(face)
-            point = self.calibration.calc_trs_transform(trs, centerd_point)
+            point = self.calibration.calc_trs_transform(centerd_point)
+
+            k_point = self.calibration.calc_filtered_point(centerd_point)
+            k_point = self.calibration.calc_trs_transform(k_point)
+
+            cv2.circle(self.fullscimg, (int(k_point[0]), int(k_point[1])), 10, (255, 0, 0), -1)
             cv2.circle(self.fullscimg, (int(point[0]), int(point[1])), 5, (0, 255, 0), -1)
             
-            cv2.putText(self.fullscimg, str(trs), (0,int(self.calibration.screen_height)-4), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+            cv2.putText(self.fullscimg, "Noize: "+str(self.calibration.filter.R), (0, int(self.calibration.screen_height) - 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+            cv2.putText(self.fullscimg, str(self.calibration.trs_matrix), (0,int(self.calibration.screen_height)-4), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
             cv2.namedWindow("calibration", cv2.WND_PROP_FULLSCREEN)
             cv2.setWindowProperty("calibration",cv2.WND_PROP_FULLSCREEN,cv2.WINDOW_FULLSCREEN)
             cv2.imshow('calibration', self.fullscimg)
@@ -321,11 +330,14 @@ class Demo:
             current_point = calibration_points[self.current_calibration_index]
             img = np.zeros((self.calibration.screen_height, self.calibration.screen_width, 3), dtype=np.uint8)
             
-            # 0.5초 후에 점을 그리도록 설정
+            # 점을 그리기
             if time.time() - self.calibration_start_time >= 0.5:
+                cv2.circle(img, (int(current_point[0]), int(current_point[1])), 20, (0, 255, 255), -1)
+            if time.time() - self.calibration_start_time >= 1.5:
                 cv2.circle(img, (int(current_point[0]), int(current_point[1])), 20, (0, 255, 0), -1)
-                cv2.putText(img, f"{self.current_calibration_index }", 
-                            (int(current_point[0]) - 10, int(current_point[1] + 10)), 
+            for i in range(len(calibration_points)):
+                cv2.putText(img, f"{i+1}", 
+                            (int(calibration_points[i][0]) - 10, int(calibration_points[i][1] + 10)), 
                             cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 2)
             
             
@@ -333,13 +345,13 @@ class Demo:
             cv2.setWindowProperty("calibration", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
             cv2.imshow('calibration', img)
 
-            if time.time() - self.calibration_start_time >= 1.0:
+            if time.time() - self.calibration_start_time >= 2:
                 # 현재 얼굴의 중앙점 추가
                 eye_vector = self.calibration.calc_eye_2d_vector(face)
                 self.collected_points[self.current_calibration_index].append(eye_vector)
             
-            # 3초가 지나면 다음 점으로 이동
-            if time.time() - self.calibration_start_time >= 3:
+            # 다음 점으로 이동
+            if time.time() - self.calibration_start_time >= 4:
 
                 # 다음 점으로 이동
                 self.current_calibration_index += 1

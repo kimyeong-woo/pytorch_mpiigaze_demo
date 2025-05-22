@@ -3,6 +3,8 @@ import numpy as np
 from scipy.spatial.distance import cdist
 from ..common import Face, FacePartsName
 from ..gaze_estimator import GazeEstimator
+from .kalman_filter import KalmanFilter2D
+import time
 import math
 
 class Calibration:
@@ -12,15 +14,12 @@ class Calibration:
         self.screen_width = screen_width
         self.screen_height = screen_height
 
+        self.filter = KalmanFilter2D(process_noise=1e-9)
+        self.last_time = 0
+
+        self.trs_matrix = None
+
         self.eye_vector = np.array([0, 0])
-
-        self.point_a = np.array([screen_width / 10, screen_height / 10])
-        self.point_b = np.array([screen_width * 9 / 10, screen_height / 10])
-        self.point_c = np.array([screen_width * 9 / 10, screen_height * 9 / 10])
-        self.point_d = np.array([screen_width / 10, screen_height * 9 / 10])
-
-        self.scale = np.array([0.0, 0.0])
-        self.point = np.array([0.0, 0.0])
 
     def calc_eye_2d_vector(self, face: Face) -> np.ndarray:
         """
@@ -42,9 +41,21 @@ class Calibration:
         res = np.sum(eye_composition, axis=0)
         res = res[:2] / -res[2]
 
-        return res
+        self.eye_vector = res
 
-    def calculate_filtered_center(self, points):
+        return res
+    
+    def calc_noize(self, origin_points, collected_points):
+        points = np.empty((0, 2), dtype=np.float32)
+        for i in range(len(origin_points)):
+            points = np.append(points, collected_points[i] - origin_points[i])
+        points = np.array(points, dtype=np.float32)
+        points = points.reshape(-1, 2)
+        self.filter.calc_noize(points)
+
+
+
+    def calc_filtered_centers(self, points) -> np.ndarray:
         """
         튀어있는 점(outliers)을 제거하고 중앙점을 계산합니다.
         """
@@ -70,10 +81,8 @@ class Calibration:
 
         return np.array([refined_center[0], refined_center[1]])
 
-    def calc_filtered_centers(self, points):
-        return [self.calculate_filtered_center(p) for p in points]
 
-    def calc_trs_matrix(self, origins, dests):
+    def calc_trs_matrix(self, origins, dests) -> np.ndarray:
         """
         원본 점과 변환된 점을 기반으로 변환 행렬을 계산합니다.
         """
@@ -82,29 +91,22 @@ class Calibration:
         dests = np.array(dests, dtype=np.float32)
 
         # 변환 행렬 계산
-        matrix = cv2.getPerspectiveTransform(dests, origins)
-        return matrix
+        self.trs_matrix  = cv2.getPerspectiveTransform(dests, origins)
+        return self.trs_matrix 
 
-    def calc_trs_transform(self, matrix, point):
+    def calc_trs_transform(self, point) -> np.ndarray:
         """
         변환 행렬을 사용하여 점을 변환합니다.
         """
         # numpy 배열로 변환
-        transformed_point = cv2.perspectiveTransform(np.array([[point]], dtype=np.float32), matrix)[0][0]
+        transformed_point = cv2.perspectiveTransform(np.array([[point]], dtype=np.float32), self.trs_matrix )[0][0]
         return np.array([int(transformed_point[0]), int(transformed_point[1])])
 
-    def calc_point(self, point):
-        """
-        화면 좌표를 계산합니다.
-        """
-        x = int(point[0] * self.scale[0] + self.point[0])
-        y = int(point[1] * self.scale[1] + self.point[1])
-        return np.array([x, y])
+    def calc_filtered_point(self, point) -> np.ndarray:
+        if self.last_time == 0:
+            self.last_time = time.time()
+        dt = time.time() - self.last_time
+        
+        return self.filter.correct(point, dt = dt)[0]
+        
 
-    def draw_calcd_point(self, image, face):
-        """
-        화면에 점을 그립니다.
-        """
-        self.calc_center(face)
-        point = self.calc_point(self.eye_vector)
-        cv2.circle(image, (point[0], point[1]), 5, (0, 255, 0), -1)

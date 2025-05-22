@@ -38,25 +38,4 @@ class Camera:
                                         self.camera_matrix,
                                         self.dist_coefficients)
         return points2d.reshape(-1, 2)
-
-    def convert_to_camera_direction(self,
-                                    point3d: np.ndarray,
-                                    rvec: Optional[np.ndarray] = None,
-                                    tvec: Optional[np.ndarray] = None) -> np.ndarray:
-
-        # Normalize to get the direction vector
-        direction = point3d
-
-        # Adjust direction based on FOV
-        fx = self.camera_matrix[0, 0]  # Focal length in x
-        fy = self.camera_matrix[1, 1]  # Focal length in y
-
-        # Calculate FOV in radians
-        fov_x = 2 * np.arctan2(self.width / 2, fx)
-        fov_y = 2 * np.arctan2(self.height / 2, fy)
-
-        # Scale the direction vector to account for FOV
-        direction[0] *= np.tan(fov_x / 2)
-        direction[1] *= np.tan(fov_y / 2)
-
-        return direction
+    
