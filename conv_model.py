@@ -3,19 +3,19 @@ import numpy as np
 import ai_edge_torch
 from ptgaze.gaze_estimator import GazeEstimator
 from ptgaze.common import FacePartsName
+import ptgaze.utils as utils
 from omegaconf import OmegaConf
 import cv2
 import time
 
-config = OmegaConf.load('./ptgaze/data/configs/mpiigaze.yaml')
-config.gaze_estimator.camera_params = './ptgaze/data/calib/camera_params.yaml'
-config.gaze_estimator.normalized_camera_params = './ptgaze/data/normalized_camera_params/mpiigaze.yaml'
-config.face_detector.mode = 'mediapipe'
-config.gaze_estimator.checkpoint = '/Users/jhpark/.ptgaze/models/mpiigaze_resnet_preact.pth'
+tflite_path = '~/.ptgaze/models/mpiigaze.tflite'
+config = OmegaConf.load('./ptgaze/data/configs/edge.yaml')
+utils.expanduser_all(config)
+tflite_path = utils._expanduser(tflite_path)
 
 gaze_estimator = GazeEstimator(config)
 
-image = cv2.imread('./calib_images/sample_img.png')
+image = cv2.imread(config.demo.image_path)
 
 undistorted = cv2.undistort(
             image, gaze_estimator.camera.camera_matrix,
