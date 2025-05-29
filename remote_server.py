@@ -3,7 +3,6 @@ import struct
 import numpy as np
 from omegaconf import OmegaConf
 from ptgaze.gaze_estimator import GazeEstimator
-from ptgaze.common import FacePartsName
 import ptgaze.utils as utils
 from ptgaze.demo import Demo
 import cv2
@@ -18,14 +17,14 @@ def _get_ddbox_size(face: Face) -> float:
     Calculate the size of the bounding box for the face.
     """
     bbox = face.bbox
-    width = bbox[2] - bbox[0]
-    height = bbox[3] - bbox[1]
-    return width * height
+    length =bbox[1] - bbox[0]
+    return length[0] * length[1]
 
 class RemoteServer:
     def __init__(self, tflite_path, config):
         self.tflite_path = utils._expanduser(tflite_path)
         self.config = config
+        utils.expanduser_all(self.config)
         self.gaze_estimator = GazeEstimator(config)
         self.demo = Demo(config)
         self.server_socket = None
